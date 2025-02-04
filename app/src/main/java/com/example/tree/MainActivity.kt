@@ -8,6 +8,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.View
 import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +25,9 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     private lateinit var gestureDetector: GestureDetector
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var videoMediaPlayer: MediaPlayer
+
+    private var dX: Float = 0f
+    private var dY: Float = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +82,11 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        // Добавляем обработчики перетаскивания для ImageView
+        setupDragAndDrop(starImageView)
+        setupDragAndDrop(heartImageView)
+        setupDragAndDrop(moonImageView)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -127,4 +136,23 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {}
+
+    private fun setupDragAndDrop(view: View) {
+        view.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    // Начало перетаскивания
+                    dX = v.x - event.rawX
+                    dY = v.y - event.rawY
+                    v.performClick() // Вызываем performClick для обработки кликов
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    // Перемещение
+                    v.x = event.rawX + dX
+                    v.y = event.rawY + dY
+                }
+            }
+            true
+        }
+    }
 }
