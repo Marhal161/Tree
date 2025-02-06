@@ -1,6 +1,5 @@
 package com.example.tree
 
-import android.graphics.Rect
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -17,6 +16,7 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
+import android.view.animation.AccelerateInterpolator
 import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -39,10 +39,32 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
 
     private var dX: Float = 0f
     private var dY: Float = 0f
-    private var isVideoCompleted: Boolean = false // Флаг для отслеживания завершения видео
+    private var isVideoCompleted: Boolean = false
 
     private val items = mutableListOf<ImageView>()
     private val maxItems = 13
+
+    // Список всех зон для перетаскивания
+    private val dropZones: List<View> by lazy {
+        listOf(
+            findViewById(R.id.dropZone1),
+            findViewById(R.id.dropZone2),
+            findViewById(R.id.dropZone3),
+            findViewById(R.id.dropZone4),
+            findViewById(R.id.dropZone5),
+            findViewById(R.id.dropZone6),
+            findViewById(R.id.dropZone7),
+            findViewById(R.id.dropZone8),
+            findViewById(R.id.dropZone9),
+            findViewById(R.id.dropZone10),
+            findViewById(R.id.dropZone11),
+            findViewById(R.id.dropZone12),
+            findViewById(R.id.dropZone13),
+        )
+    }
+
+    // Список для отслеживания состояния каждой dropZone
+    private val dropZoneOccupied = mutableListOf<Boolean>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +84,7 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         val uri: Uri = Uri.parse(videoPath)
         videoMediaPlayer = MediaPlayer.create(this, uri)
         videoMediaPlayer?.setOnCompletionListener {
-            isVideoCompleted = true // Устанавливаем флаг в true, когда видео завершено
+            isVideoCompleted = true
             surfaceView.visibility = SurfaceView.GONE
             backgroundImageView.visibility = ImageView.VISIBLE
             starImageView.visibility = ImageView.VISIBLE
@@ -75,22 +97,12 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
             .load(R.drawable.tree)
             .into(backgroundImageView)
 
-        // Устанавливаем параметры масштабирования для ImageView
         backgroundImageView.scaleType = ImageView.ScaleType.FIT_XY
 
-        // Инициализируем GestureDetector
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 if (!isVideoCompleted && videoMediaPlayer?.isPlaying == true) {
-                    videoMediaPlayer?.stop()
-                    videoMediaPlayer?.release()
-                    videoMediaPlayer = null
-                    surfaceView.visibility = SurfaceView.GONE
-                    backgroundImageView.visibility = ImageView.VISIBLE
-                    starImageView.visibility = ImageView.VISIBLE
-                    heartImageView.visibility = ImageView.VISIBLE
-                    moonImageView.visibility = ImageView.VISIBLE
-                    playAudio()
+                    stopVideo()
                 }
                 return true
             }
@@ -102,12 +114,10 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
             insets
         }
 
-        // Инициализируем SensorManager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
 
-        // Устанавливаем обработчики нажатий для кнопок
         starImageView.setOnClickListener {
             createAndDropItem(R.drawable.star)
         }
@@ -117,6 +127,10 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         moonImageView.setOnClickListener {
             createAndDropItem(R.drawable.moon)
         }
+        // Инициализация списка состояния dropZone
+        dropZones.forEach {
+            dropZoneOccupied.add(false)
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -125,15 +139,7 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
 
     override fun onDoubleTap(e: MotionEvent): Boolean {
         if (!isVideoCompleted && videoMediaPlayer?.isPlaying == true) {
-            videoMediaPlayer?.stop()
-            videoMediaPlayer?.release()
-            videoMediaPlayer = null
-            surfaceView.visibility = SurfaceView.GONE
-            backgroundImageView.visibility = ImageView.VISIBLE
-            starImageView.visibility = ImageView.VISIBLE
-            heartImageView.visibility = ImageView.VISIBLE
-            moonImageView.visibility = ImageView.VISIBLE
-            playAudio()
+            stopVideo()
         }
         return true
     }
@@ -146,15 +152,29 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         return false
     }
 
+    private fun stopVideo() {
+        videoMediaPlayer?.stop()
+        videoMediaPlayer?.release()
+        videoMediaPlayer = null
+        surfaceView.visibility = SurfaceView.GONE
+        backgroundImageView.visibility = ImageView.VISIBLE
+        starImageView.visibility = ImageView.VISIBLE
+        heartImageView.visibility = ImageView.VISIBLE
+        moonImageView.visibility = ImageView.VISIBLE
+        playAudio()
+    }
+
     private fun playAudio() {
-        mediaPlayer = MediaPlayer.create(this, R.raw.chicken) // Замените your_audio_file на имя вашего аудиофайла
+        mediaPlayer = MediaPlayer.create(this, R.raw.chicken)
         mediaPlayer?.start()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         mediaPlayer?.release()
+        mediaPlayer = null
         videoMediaPlayer?.release()
+        videoMediaPlayer = null
         sensorManager.unregisterListener(this)
     }
 
@@ -167,89 +187,101 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {}
 
-    override fun onSensorChanged(event: SensorEvent) {
-        // Удалили обработку событий акселерометра
-    }
+    override fun onSensorChanged(event: SensorEvent) {}
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
+    private fun startFallAnimation(view: View) {
+        val targetY = backgroundImageView.height.toFloat() - view.height.toFloat()
+        val animator = ValueAnimator.ofFloat(view.y, targetY)
+        animator.duration = 2000
+        animator.interpolator = AccelerateInterpolator()
+        animator.addUpdateListener { animation ->
+            val value = animation.animatedValue as Float
+            view.y = value
+        }
+        animator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                ensureViewIsOnGround(view)
+                // Обновляем состояние зоны сброса при завершении анимации падения
+                updateDropZoneState(view, false)
+            }
+        })
+        view.tag = animator
+        animator.start()
+    }
+
     private fun createAndDropItem(drawableRes: Int) {
         if (items.size >= maxItems) {
-            // Удаляем самую старую фигуру
             val oldestItem = items.removeAt(0)
             val container = findViewById<ConstraintLayout>(R.id.main)
             container.removeView(oldestItem)
+            updateDropZoneState(oldestItem, false)
         }
 
-        val imageView = ImageView(this)
-        imageView.setImageResource(drawableRes)
-        imageView.scaleType = ImageView.ScaleType.FIT_XY
-        val layoutParams = ConstraintLayout.LayoutParams(100, 100)
-        imageView.layoutParams = layoutParams
+        val imageView = ImageView(this).apply {
+            setImageResource(drawableRes)
+            scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = ConstraintLayout.LayoutParams(100, 100)
+            elevation = 10f * (items.size + 1)
+            x = Random.nextInt(backgroundImageView.width - 100).toFloat()
+            y = -100f
+        }
+
         val container = findViewById<ConstraintLayout>(R.id.main)
         container.addView(imageView)
-
-        // Устанавливаем elevation для нового объекта, чтобы он отображался поверх предыдущих
-        imageView.elevation = 10f * container.childCount
-
-        val randomX = Random.nextInt(backgroundImageView.width - 100)
-        imageView.x = randomX.toFloat()
-        imageView.y = -100f
 
         items.add(imageView)
         startFallAnimation(imageView)
         setupDragAndDrop(imageView)
     }
 
-    private fun startFallAnimation(view: View) {
-        val targetY = backgroundImageView.height.toFloat() - view.height.toFloat()
-        val animator = ValueAnimator.ofFloat(view.y, targetY)
-        animator.duration = 2000 // Длительность анимации в миллисекундах
-        animator.addUpdateListener { animation ->
-            val value = animation.animatedValue as Float
-            view.y = value
-            checkCollision(view)
-        }
-        animator.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                // После завершения анимации можно сделать что-то еще, например, сбросить позицию объекта
-                // view.y = 0f // Сброс позиции объекта (если нужно)
-            }
-        })
-        animator.start()
-    }
-
     private fun setupDragAndDrop(view: View) {
         view.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    // Начало перетаскивания
                     dX = v.x - event.rawX
                     dY = v.y - event.rawY
-                    v.performClick() // Вызываем performClick для обработки кликов
+                    v.performClick()
+                    (v.tag as? Animator)?.cancel()
+                    // Обновляем состояние зоны сброса при начале перемещения
+                    updateDropZoneState(v, false)
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    // Перемещение
                     v.x = event.rawX + dX
                     v.y = event.rawY + dY
-                    checkCollision(v)
                 }
                 MotionEvent.ACTION_UP -> {
-                    // Отпускание, начинаем анимацию падения
-                    startFallAnimation(v)
+                    val dropZone = dropZones.find { isViewInDropZone(v, it) }
+                    if (dropZone != null) {
+                        val index = dropZones.indexOf(dropZone)
+                        if (!dropZoneOccupied[index]) {
+                            v.x = dropZone.x + (dropZone.width - v.width) / 2
+                            v.y = dropZone.y + (dropZone.height - v.height) / 2
+                            dropZoneOccupied[index] = true
+                        } else {
+                            startFallAnimation(v)
+                        }
+                    } else {
+                        startFallAnimation(v)
+                    }
                 }
             }
             true
         }
     }
 
-    private fun checkCollision(view: View) {
-        for (otherView in items) {
-            if (view != otherView && areViewsColliding(view, otherView)) {
-                resolveCollision(view, otherView)
-            }
-        }
-        // Проверяем, чтобы объект не выходил за пределы экрана
+    private fun isViewInDropZone(view: View, dropZone: View): Boolean {
+        val viewRect = android.graphics.Rect()
+        view.getHitRect(viewRect)
+
+        val dropZoneRect = android.graphics.Rect()
+        dropZone.getHitRect(dropZoneRect)
+
+        return viewRect.intersect(dropZoneRect)
+    }
+
+    private fun ensureViewIsOnGround(view: View) {
         if (view.y + view.height > backgroundImageView.height) {
             view.y = (backgroundImageView.height - view.height).toFloat()
         }
@@ -261,49 +293,11 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         }
     }
 
-    private fun areViewsColliding(view1: View, view2: View): Boolean {
-        val rect1 = Rect()
-        view1.getHitRect(rect1)
-        val rect2 = Rect()
-        view2.getHitRect(rect2)
-        return Rect.intersects(rect1, rect2)
-    }
-
-    private fun resolveCollision(view1: View, view2: View) {
-        // Простое разрешение коллизии: сдвигаем объекты в противоположные стороны
-        val dx = view1.x - view2.x
-        val dy = view1.y - view2.y
-        val distance = Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
-        if (distance == 0f) return
-
-        val overlap = (view1.width + view2.width) / 2f - distance
-        val moveX = overlap * (dx / distance) / 2f
-        val moveY = overlap * (dy / distance) / 2f
-
-        // Сдвигаем объекты в противоположные стороны
-        view1.x += moveX
-        view1.y += moveY
-        view2.x -= moveX
-        view2.y -= moveY
-
-        // Проверяем, чтобы объекты не выходили за пределы экрана
-        if (view1.y + view1.height > backgroundImageView.height) {
-            view1.y = (backgroundImageView.height - view1.height).toFloat()
-        }
-        if (view2.y + view2.height > backgroundImageView.height) {
-            view2.y = (backgroundImageView.height - view2.height).toFloat()
-        }
-        if (view1.x < 0) {
-            view1.x = 0f
-        }
-        if (view1.x + view1.width > backgroundImageView.width) {
-            view1.x = (backgroundImageView.width - view1.width).toFloat()
-        }
-        if (view2.x < 0) {
-            view2.x = 0f
-        }
-        if (view2.x + view2.width > backgroundImageView.width) {
-            view2.x = (backgroundImageView.width - view2.width).toFloat()
+    private fun updateDropZoneState(view: View, isOccupied: Boolean) {
+        val dropZone = dropZones.find { isViewInDropZone(view, it) }
+        if (dropZone != null) {
+            val index = dropZones.indexOf(dropZone)
+            dropZoneOccupied[index] = isOccupied
         }
     }
 }
