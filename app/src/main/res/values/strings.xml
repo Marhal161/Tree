@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Tree</string>
+    <string name="background_image_description">Background image of a tree</string>
+    <string name="star_image_description">Star icon</string>
+    <string name="heart_image_description">Heart icon</string>
+    <string name="moon_image_description">Moon icon</string>
 </resources>
