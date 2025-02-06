@@ -33,12 +33,13 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     private lateinit var heartImageView: ImageView
     private lateinit var moonImageView: ImageView
     private lateinit var gestureDetector: GestureDetector
-    private lateinit var mediaPlayer: MediaPlayer
-    private lateinit var videoMediaPlayer: MediaPlayer
+    private var mediaPlayer: MediaPlayer? = null
+    private var videoMediaPlayer: MediaPlayer? = null
     private lateinit var sensorManager: SensorManager
 
     private var dX: Float = 0f
     private var dY: Float = 0f
+    private var isVideoCompleted: Boolean = false // Флаг для отслеживания завершения видео
 
     private val items = mutableListOf<ImageView>()
     private val maxItems = 13
@@ -60,7 +61,8 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         val videoPath = "android.resource://" + packageName + "/" + R.raw.intro
         val uri: Uri = Uri.parse(videoPath)
         videoMediaPlayer = MediaPlayer.create(this, uri)
-        videoMediaPlayer.setOnCompletionListener {
+        videoMediaPlayer?.setOnCompletionListener {
+            isVideoCompleted = true // Устанавливаем флаг в true, когда видео завершено
             surfaceView.visibility = SurfaceView.GONE
             backgroundImageView.visibility = ImageView.VISIBLE
             starImageView.visibility = ImageView.VISIBLE
@@ -79,14 +81,17 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         // Инициализируем GestureDetector
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                videoMediaPlayer.stop()
-                videoMediaPlayer.release()
-                surfaceView.visibility = SurfaceView.GONE
-                backgroundImageView.visibility = ImageView.VISIBLE
-                starImageView.visibility = ImageView.VISIBLE
-                heartImageView.visibility = ImageView.VISIBLE
-                moonImageView.visibility = ImageView.VISIBLE
-                playAudio()
+                if (!isVideoCompleted && videoMediaPlayer?.isPlaying == true) {
+                    videoMediaPlayer?.stop()
+                    videoMediaPlayer?.release()
+                    videoMediaPlayer = null
+                    surfaceView.visibility = SurfaceView.GONE
+                    backgroundImageView.visibility = ImageView.VISIBLE
+                    starImageView.visibility = ImageView.VISIBLE
+                    heartImageView.visibility = ImageView.VISIBLE
+                    moonImageView.visibility = ImageView.VISIBLE
+                    playAudio()
+                }
                 return true
             }
         })
@@ -119,14 +124,17 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     }
 
     override fun onDoubleTap(e: MotionEvent): Boolean {
-        videoMediaPlayer.stop()
-        videoMediaPlayer.release()
-        surfaceView.visibility = SurfaceView.GONE
-        backgroundImageView.visibility = ImageView.VISIBLE
-        starImageView.visibility = ImageView.VISIBLE
-        heartImageView.visibility = ImageView.VISIBLE
-        moonImageView.visibility = ImageView.VISIBLE
-        playAudio()
+        if (!isVideoCompleted && videoMediaPlayer?.isPlaying == true) {
+            videoMediaPlayer?.stop()
+            videoMediaPlayer?.release()
+            videoMediaPlayer = null
+            surfaceView.visibility = SurfaceView.GONE
+            backgroundImageView.visibility = ImageView.VISIBLE
+            starImageView.visibility = ImageView.VISIBLE
+            heartImageView.visibility = ImageView.VISIBLE
+            moonImageView.visibility = ImageView.VISIBLE
+            playAudio()
+        }
         return true
     }
 
@@ -140,23 +148,19 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
 
     private fun playAudio() {
         mediaPlayer = MediaPlayer.create(this, R.raw.chicken) // Замените your_audio_file на имя вашего аудиофайла
-        mediaPlayer.start()
+        mediaPlayer?.start()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.release()
-        }
-        if (::videoMediaPlayer.isInitialized) {
-            videoMediaPlayer.release()
-        }
+        mediaPlayer?.release()
+        videoMediaPlayer?.release()
         sensorManager.unregisterListener(this)
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        videoMediaPlayer.setDisplay(holder)
-        videoMediaPlayer.start()
+        videoMediaPlayer?.setDisplay(holder)
+        videoMediaPlayer?.start()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
