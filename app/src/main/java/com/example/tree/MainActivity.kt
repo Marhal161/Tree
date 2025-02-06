@@ -36,9 +36,6 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var videoMediaPlayer: MediaPlayer
     private lateinit var sensorManager: SensorManager
-    private var acceleration = 0f
-    private var currentAcceleration = 0f
-    private var lastAcceleration = 0f
 
     private var dX: Float = 0f
     private var dY: Float = 0f
@@ -167,39 +164,10 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     override fun surfaceDestroyed(holder: SurfaceHolder) {}
 
     override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
-            lastAcceleration = currentAcceleration
-            currentAcceleration = Math.sqrt((x * x + y * y + z * z).toDouble()).toFloat()
-            val delta = currentAcceleration - lastAcceleration
-            acceleration = acceleration * 0.9f + delta
-
-            if (acceleration > 12) {
-                dropRandomItems()
-            }
-        }
+        // Удалили обработку событий акселерометра
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-
-    private fun dropRandomItems() {
-        val random = Random
-        val starCount = random.nextInt(4)
-        val heartCount = random.nextInt(4)
-        val moonCount = random.nextInt(4)
-
-        repeat(starCount) {
-            createAndDropItem(R.drawable.star)
-        }
-        repeat(heartCount) {
-            createAndDropItem(R.drawable.heart)
-        }
-        repeat(moonCount) {
-            createAndDropItem(R.drawable.moon)
-        }
-    }
 
     private fun createAndDropItem(drawableRes: Int) {
         if (items.size >= maxItems) {
