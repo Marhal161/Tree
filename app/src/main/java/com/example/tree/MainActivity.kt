@@ -24,6 +24,11 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlin.random.Random
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.widget.Button
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, SurfaceHolder.Callback, SensorEventListener {
 
@@ -36,6 +41,10 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
     private var mediaPlayer: MediaPlayer? = null
     private var videoMediaPlayer: MediaPlayer? = null
     private lateinit var sensorManager: SensorManager
+    private val handler = Handler(Looper.getMainLooper())
+    private val restartAudioRunnable = Runnable { playAudio() }
+
+    private var hungItemsCount = 0
 
     private var dX: Float = 0f
     private var dY: Float = 0f
@@ -76,6 +85,7 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         starImageView = findViewById(R.id.starImageView)
         heartImageView = findViewById(R.id.heartImageView)
         moonImageView = findViewById(R.id.moonImageView)
+        val showMessageButton: Button = findViewById(R.id.showMessageButton)
 
         val surfaceHolder = surfaceView.holder
         surfaceHolder.addCallback(this)
@@ -84,12 +94,16 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         val uri: Uri = Uri.parse(videoPath)
         videoMediaPlayer = MediaPlayer.create(this, uri)
         videoMediaPlayer?.setOnCompletionListener {
+            Log.d("VideoPlayer", "Video completed") // Логирование завершения видео
             isVideoCompleted = true
             surfaceView.visibility = SurfaceView.GONE
             backgroundImageView.visibility = ImageView.VISIBLE
             starImageView.visibility = ImageView.VISIBLE
             heartImageView.visibility = ImageView.VISIBLE
             moonImageView.visibility = ImageView.VISIBLE
+            runOnUiThread {
+                showMessageButton.visibility = Button.VISIBLE // Делаем кнопку видимой в основном потоке
+            }
             playAudio()
         }
 
@@ -103,6 +117,9 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 if (!isVideoCompleted && videoMediaPlayer?.isPlaying == true) {
                     stopVideo()
+                    runOnUiThread {
+                        showMessageButton.visibility = Button.VISIBLE // Делаем кнопку видимой в основном потоке
+                    }
                 }
                 return true
             }
@@ -131,7 +148,26 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
         dropZones.forEach {
             dropZoneOccupied.add(false)
         }
+
+        // Установка обработчика нажатия на кнопку
+        showMessageButton.setOnClickListener {
+            checkAndShowMessage()
+        }
     }
+
+
+    override fun onPause() {
+        super.onPause()
+        mediaPlayer?.pause() // Останавливаем воспроизведение музыки
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (mediaPlayer != null && !mediaPlayer!!.isPlaying) {
+            mediaPlayer?.start() // Возобновляем воспроизведение музыки
+        }
+    }
+
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
@@ -166,6 +202,9 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
 
     private fun playAudio() {
         mediaPlayer = MediaPlayer.create(this, R.raw.chicken)
+        mediaPlayer?.setOnCompletionListener {
+            handler.postDelayed(restartAudioRunnable, 1000) // Задержка в 1 секунду перед повторным воспроизведением
+        }
         mediaPlayer?.start()
     }
 
@@ -265,6 +304,8 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
                     } else {
                         startFallAnimation(v)
                     }
+                    // Обновляем состояние зоны сброса при завершении перемещения
+                    updateDropZoneState(v, true)
                 }
             }
             true
@@ -300,4 +341,36 @@ class MainActivity : AppCompatActivity(), GestureDetector.OnDoubleTapListener, S
             dropZoneOccupied[index] = isOccupied
         }
     }
+
+    private fun showHelloWorldMessage(message: String) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog, null)
+        val messageTextView = dialogView.findViewById<TextView>(R.id.messageTextView)
+        val okButton = dialogView.findViewById<Button>(R.id.okButton)
+
+        messageTextView.text = message
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        okButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun checkAndShowMessage() {
+        val hungItemsCount = items.count { item ->
+            dropZones.any { dropZone -> isViewInDropZone(item, dropZone) }
+        }
+
+        val message = when {
+            hungItemsCount <= 3 -> "Ты можешь лучше"
+            hungItemsCount in 4..8 -> "Ты красава"
+            else -> "ТЫ перегибаешь"
+        }
+        showHelloWorldMessage(message)
+    }
+
 }

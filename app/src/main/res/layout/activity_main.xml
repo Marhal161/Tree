@@ -28,6 +28,18 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
+    <TextView
+        android:id="@+id/messageTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/starImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"/>
+
     <ImageView
         android:id="@+id/starImageView"
         android:layout_width="40dp"
@@ -265,6 +277,20 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.547" />
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/vertical_guideline_14"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.63" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/horizontal_guideline_14"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.86" />
+
     <!-- Drop Zones -->
     <View
         android:id="@+id/dropZone1"
@@ -356,6 +382,17 @@
         android:layout_height="15dp"
         app:layout_constraintStart_toStartOf="@id/vertical_guideline_13"
         app:layout_constraintTop_toTopOf="@id/horizontal_guideline_13" />
+
+    <Button
+        android:id="@+id/showMessageButton"
+        android:layout_width="124dp"
+        android:layout_height="50dp"
+        android:text="Готово"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="@id/vertical_guideline_14"
+        app:layout_constraintTop_toTopOf="@id/horizontal_guideline_14"
+        android:elevation="10dp" />
+
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
